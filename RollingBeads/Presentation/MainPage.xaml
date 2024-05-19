@@ -1,0 +1,30 @@
+﻿<Page x:Class="RollingBeads.Presentation.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:RollingBeads.Presentation"
+      xmlns:uen="using:Uno.Extensions.Navigation.UI"
+      xmlns:utu="using:Uno.Toolkit.UI"
+      xmlns:um="using:Uno.Material"
+      NavigationCacheMode="Required"
+      Background="{ThemeResource BackgroundBrush}">
+
+  <Grid utu:SafeArea.Insets="VisibleBounds">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+    </Grid.RowDefinitions>
+    <StackPanel Orientation="Horizontal">
+      <TextBlock Text="라인 개수" VerticalAlignment="Center"/>
+      <NumberBox x:Name="beadCountInput" Width="50" Margin="5 0 0 0" Value="10" ValueChanged="beadCountInput_ValueChanged"/>
+      <TextBlock Text="왕복속도(초)" Margin="15 0 0 0" VerticalAlignment="Center"/>
+      <NumberBox x:Name="cycleSecondInput" Width="50" Margin="5 0 0 0" Value="2" ValueChanged="cycleSecondInput_ValueChanged"/>
+      <CheckBox x:Name="drawLineCheck" Content="선 그리기" Margin="15 0 0 0" IsChecked="False" Checked="drawLineCheck_Checked" Unchecked="drawLineCheck_Unchecked"/>
+    </StackPanel>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0 10 0 0">
+      <Button x:Name="Move" Content="Move" Click="Move_Click" />
+      <Button x:Name="Reset" Content="Reset" Click="Reset_Click" Margin="5,0,0,0"/>
+    </StackPanel>
+    <Canvas Grid.Row="2" x:Name="canvas"/>
+  </Grid>
+</Page>

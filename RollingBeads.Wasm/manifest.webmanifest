@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "RollingBeads",
+  "display": "standalone",
+  "name": "RollingBeads",
+  "short_name": "RollingBeads",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}
