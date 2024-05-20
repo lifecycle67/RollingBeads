@@ -8,7 +8,7 @@
       NavigationCacheMode="Required"
       Background="{ThemeResource BackgroundBrush}">
 
-  <Grid utu:SafeArea.Insets="VisibleBounds" Background="White">
+  <Grid utu:SafeArea.Insets="VisibleBounds">
     <Grid.RowDefinitions>
       <RowDefinition Height="auto"/>
       <RowDefinition Height="auto"/>
@@ -25,6 +25,6 @@
       <Button x:Name="Move" Content="Move" Click="Move_Click" />
       <Button x:Name="Reset" Content="Reset" Click="Reset_Click" Margin="5,0,0,0"/>
     </StackPanel>
-    <Canvas Grid.Row="2" x:Name="canvas"/>
+    <Canvas Grid.Row="2" x:Name="canvas" Background="White"/>
   </Grid>
 </Page>
