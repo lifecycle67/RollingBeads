@@ -40,12 +40,17 @@ public sealed partial class MainPage : Page
         List<(Bead, Ellipse)> list = new List<(Bead, Ellipse)>();
         lines.Clear();
         _list.Clear();
+
+        var elementColor = Colors.Black;
+        if (ActualTheme == ElementTheme.Dark)
+            elementColor = Colors.White;
+
         foreach (var bead in _beadCollection.Beads)
         {
             Ellipse ellipse = new Ellipse();
             ellipse.Width = 10;
             ellipse.Height = 10;
-            ellipse.Fill = Colors.Black;
+            ellipse.Fill = elementColor;
             Canvas.SetLeft(ellipse, bead.XPoint);
             Canvas.SetTop(ellipse, bead.YPoint);
             canvas.Children.Add(ellipse);
@@ -54,8 +59,7 @@ public sealed partial class MainPage : Page
             _list.Add(list);
 
             Line line = new Line();
-            line.Stroke = Colors.Black;
-            line.Fill = Colors.Black;
+            line.Stroke = elementColor;
             line.X1 = list[0].Item1.MinXPoint + 5;
             line.Y1 = list[0].Item1.MinYPoint + 5;
             line.X2 = list[0].Item1.MaxXPoint + 5;
