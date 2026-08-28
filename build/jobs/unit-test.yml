@@ -13,7 +13,7 @@ jobs:
       inputs:
         solution: ./RollingBeads.Tests/RollingBeads.Tests.csproj
         configuration: 'Release'
-        msbuildArguments: '/p:OverrideTargetFramework=net8.0 /r'
+        msbuildArguments: '/p:OverrideTargetFramework=net9.0 /r'
 
     - task: VSTest@3
       inputs:

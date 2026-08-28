@@ -1,4 +1,4 @@
-<Project Sdk="Uno.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>

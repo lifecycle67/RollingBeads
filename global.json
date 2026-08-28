@@ -1,6 +1,11 @@
 {
+  "sdk": {
+    "version": "9.0.305",
+    "rollForward": "latestPatch",
+    "allowPrerelease": false
+  },
   "msbuild-sdks": {
-    "Uno.Sdk": "5.2.132",
+    "Uno.Sdk": "6.6.42",
     "Microsoft.Build.NoTargets": "3.7.56"
   }
 }
