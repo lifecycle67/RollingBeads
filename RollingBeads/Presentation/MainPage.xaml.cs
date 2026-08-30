@@ -16,22 +16,22 @@ public sealed partial class MainPage : Page
     private bool _isMoving = false;
 
     private int _lineCount = 10;
-    private const int _xPoint = 700;
-    private const int _largeY = 700;
-    private const int _smallY = 300;
+    private const double _maxRadius = 200;
+    private const double _beadSize = 10;
     private int _cycleSecond = 2;
 
     public MainPage()
     {
         this.InitializeComponent();
-
-        _beadCollection = new BeadCollection(_lineCount, (double)_cycleSecond, new Point(_xPoint, _smallY), new Point(_xPoint, _largeY));
-        Loaded += MainWindow_Loaded;
     }
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private void canvas_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        DrawElement();
+        // 이동 중에는 재배치하지 않고, Reset 시점에 새 중앙 기준으로 다시 그린다.
+        if (_isMoving)
+            return;
+
+        InitBeads();
     }
 
     private void DrawElement()
@@ -73,6 +73,7 @@ public sealed partial class MainPage : Page
 
     private void Move_Click(object sender, RoutedEventArgs e)
     {
+        _isMoving = true;
         ChangeControlState(false);
 
         _timer = new Timer((o) =>
@@ -114,14 +115,27 @@ public sealed partial class MainPage : Page
         if (_timer != null)
             await _timer.DisposeAsync();
 
+        _isMoving = false;
         InitBeads();
         ChangeControlState(true);
     }
 
     private void InitBeads()
     {
+        double width = canvas.ActualWidth;
+        double height = canvas.ActualHeight;
+        if (width <= 0 || height <= 0)
+            return;
+
+        double radius = Math.Min(_maxRadius, Math.Min(width, height) / 2 - _beadSize);
+        if (radius <= 0)
+            return;
+
+        double centerX = width / 2;
+        double centerY = height / 2;
+
         canvas.Children.Clear();
-        _beadCollection = new BeadCollection(_lineCount, (double)_cycleSecond, new Point(_xPoint, _smallY), new Point(_xPoint, _largeY));
+        _beadCollection = new BeadCollection(_lineCount, (double)_cycleSecond, new Point(centerX, centerY - radius), new Point(centerX, centerY + radius));
         DrawElement();
         if (drawLineCheck.IsChecked == true)
             drawLineCheck_Checked(null, null);
