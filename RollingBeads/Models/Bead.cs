@@ -1,27 +1,29 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Foundation;
 
 namespace RollingBeads.Models;
+
+/// <summary>
+/// 직선 위를 단순 조화 운동(사인파)으로 왕복하는 구슬.
+/// 위치는 프레임 번호의 함수로 직접 계산하므로 오차가 누적되지 않으며,
+/// 선의 기울기와 같은 위상을 주면 전체 구슬이 정확한 원 위에 놓인다(Tusi couple).
+/// startDelayFrame을 주면 그 시점의 궤도 위치(선의 끝점이 되도록 선택)에
+/// 정지해 있다가 해당 프레임부터 연속적으로 운동에 합류한다.
+/// </summary>
 public class Bead
 {
-    private double _xPoint = 0;
-    private double _yPoint = 0;
-    private QuadrantType _quadrant = QuadrantType.FirstQuadrant;
+    private readonly double _centerX;
+    private readonly double _centerY;
+    private readonly double _directionX;
+    private readonly double _directionY;
+    private readonly double _amplitude;
+    private readonly double _phaseRadian;
+    private readonly double _oneCycleFrame;
+    private readonly double _startDelayFrame;
 
-    private double _movingDistanceXPerFrame = 0;
-    private double _movingDistanceYPerFrame = 0;
-
-    private int _frameCount = 0;
-    private int _initiateCount = 0;
-
-    private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
-    private double _delayMilliseconds = 0;
-    private double _halfCycleFrame = 60.0;
+    private long _frameCount = 0;
+    private double _xPoint;
+    private double _yPoint;
 
     public double TiltAngle { get; private set; }
     public double MaxXPoint { get; private set; }
@@ -29,109 +31,56 @@ public class Bead
     public double MinYPoint { get; private set; }
     public double MaxYPoint { get; private set; }
 
-    public double OriginX { get; private set; }
     public double XPoint => _xPoint;
     public double YPoint => _yPoint;
-    public QuadrantType Quadrant => _quadrant;
-    public double DelayMilliseconds => _delayMilliseconds;
 
-    public Bead(double x,
-                double y,
-                Point rightEndPoint,
-                Point leftEndPoint,
+    public Bead(Point lineStart,
+                Point lineEnd,
                 double tiltAngle,
-                Point origin,
-                double delayMilliSeconds,
+                double phaseDegree,
                 double oneCycleFrame = 120.0,
-                bool isOtherOrthogonal = false)
+                double startDelayFrame = 0)
     {
-        _halfCycleFrame = oneCycleFrame / 2;
-        _delayMilliseconds = delayMilliSeconds;
-
         TiltAngle = tiltAngle % 360;
+        _oneCycleFrame = oneCycleFrame;
+        _phaseRadian = Math.PI * phaseDegree / 180.0;
+        _startDelayFrame = startDelayFrame;
 
-        if (x >= origin.X && y > origin.Y)
-            _quadrant = QuadrantType.FirstQuadrant;
-        else if (x < origin.X && y >= origin.Y)
-            _quadrant = QuadrantType.SecondQuadrant;
-        else if (x < origin.X && y <= origin.Y)
-            _quadrant = QuadrantType.ThirdQuadrant;
-        else if (x > origin.X && y <= origin.Y)
-            _quadrant = QuadrantType.FourthQuadrant;
+        MinXPoint = lineStart.X;
+        MinYPoint = lineStart.Y;
+        MaxXPoint = lineEnd.X;
+        MaxYPoint = lineEnd.Y;
 
-        _xPoint = x;
-        _yPoint = y;
-        MinXPoint = leftEndPoint.X;
-        MaxXPoint = rightEndPoint.X;
-        MinYPoint = leftEndPoint.Y;
-        MaxYPoint = rightEndPoint.Y;
+        _centerX = (lineStart.X + lineEnd.X) / 2;
+        _centerY = (lineStart.Y + lineEnd.Y) / 2;
 
-        double largeX = MaxXPoint > MinXPoint ? MaxXPoint : MinXPoint;
-        double smallX = MaxXPoint < MinXPoint ? MaxXPoint : MinXPoint;
-        double largeY = MaxYPoint > MinYPoint ? MaxYPoint : MinYPoint;
-        double smallY = MaxYPoint < MinYPoint ? MaxYPoint : MinYPoint;
+        double lengthX = lineEnd.X - lineStart.X;
+        double lengthY = lineEnd.Y - lineStart.Y;
+        double length = Math.Sqrt(lengthX * lengthX + lengthY * lengthY);
 
-        _movingDistanceXPerFrame = Math.Abs(largeX - smallX) / _halfCycleFrame;
-        _movingDistanceYPerFrame = Math.Abs(largeY - smallY) / _halfCycleFrame;
+        _amplitude = length / 2;
+        _directionX = length == 0 ? 0 : lengthX / length;
+        _directionY = length == 0 ? 0 : lengthY / length;
 
-        if (isOtherOrthogonal == true)
-            _quadrant = QuadrantType.ThirdQuadrant;
-
-        Debug.WriteLine($"x : {x} y : {y} init count : {_initiateCount}  tilt : {TiltAngle} quadrant : {_quadrant.ToString()}");
+        UpdatePosition();
     }
 
-    public async Task Move()
+    public Task Move()
     {
-        if (await _semaphoreSlim.WaitAsync(TimeSpan.FromMilliseconds(_delayMilliseconds)))
-            return;
-
-        if (((_initiateCount == 0 && _frameCount == 0) || _frameCount >= _halfCycleFrame))
-        {
-            _frameCount = _frameCount % (int)_halfCycleFrame;
-
-            if (_quadrant == QuadrantType.FirstQuadrant)
-                _quadrant = QuadrantType.ThirdQuadrant;
-            else if (_quadrant == QuadrantType.SecondQuadrant)
-                _quadrant = QuadrantType.FourthQuadrant;
-            else if (_quadrant == QuadrantType.ThirdQuadrant)
-                _quadrant = QuadrantType.FirstQuadrant;
-            else if (_quadrant == QuadrantType.FourthQuadrant)
-                _quadrant = QuadrantType.SecondQuadrant;
-        }
-
-        switch (_quadrant)
-        {
-            case QuadrantType.FirstQuadrant:
-                _xPoint += _movingDistanceXPerFrame;
-                _yPoint += _movingDistanceYPerFrame;
-                break;
-            case QuadrantType.SecondQuadrant:
-                _xPoint -= _movingDistanceXPerFrame;
-                _yPoint += _movingDistanceYPerFrame;
-                break;
-            case QuadrantType.ThirdQuadrant:
-                _xPoint -= _movingDistanceXPerFrame;
-                _yPoint -= _movingDistanceYPerFrame;
-                break;
-            case QuadrantType.FourthQuadrant:
-                _xPoint += _movingDistanceXPerFrame;
-                _yPoint -= _movingDistanceYPerFrame;
-                break;
-            default:
-                break;
-        }
-
-        if (_initiateCount > 0)
-            _initiateCount--;
-        else
-            _frameCount++;
+        _frameCount++;
+        UpdatePosition();
+        return Task.CompletedTask;
     }
 
-    public enum QuadrantType
+    private void UpdatePosition()
     {
-        FirstQuadrant,
-        SecondQuadrant,
-        ThirdQuadrant,
-        FourthQuadrant
+        // 시작 지연 전에는 지연 시점의 궤도 위치(선의 끝점)에 정지해 있으므로,
+        // 지연이 끝나는 순간 위치가 연속적으로 이어진다.
+        double effectiveFrame = Math.Max(_frameCount, _startDelayFrame);
+        double angle = 2 * Math.PI * effectiveFrame / _oneCycleFrame + _phaseRadian;
+        double offset = _amplitude * Math.Cos(angle);
+
+        _xPoint = _centerX + _directionX * offset;
+        _yPoint = _centerY + _directionY * offset;
     }
 }

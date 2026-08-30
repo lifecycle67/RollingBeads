@@ -1,89 +1,40 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Foundation;
 
 namespace RollingBeads.Models;
 
 public class BeadCollection
 {
-    private List<Bead> _firstBeads = new List<Bead>();
-    private List<Bead> _secondBeads = new List<Bead>();
-    private double _tiltUnit = 0;
+    private List<Bead> _beads = new List<Bead>();
 
-    public ReadOnlyCollection<Bead> Beads => new ReadOnlyCollection<Bead>(_firstBeads.Union(_secondBeads).ToList());
+    public ReadOnlyCollection<Bead> Beads => new ReadOnlyCollection<Bead>(_beads);
 
     public BeadCollection(int beadCount, double oneCycleSeconds, Point firstBeadPoint, Point secondBeadPoint)
     {
-        _tiltUnit = 180.0 / beadCount;
+        double tiltUnit = 180.0 / beadCount;
+        double oneCycleFrame = oneCycleSeconds * 60;
         var originPoint = new Point((firstBeadPoint.X + secondBeadPoint.X) / 2, (firstBeadPoint.Y + secondBeadPoint.Y) / 2);
 
         for (int i = 0; i < beadCount; i++)
         {
-            bool isOtherOrthogonal = false;
+            var beadTilt = (i * tiltUnit) % 360;
 
-            var beadTilt = (i * _tiltUnit) % 360;
+            var lineStart = new Point(PointCalculator.PointX(firstBeadPoint.X, firstBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt),
+                                      PointCalculator.PointY(firstBeadPoint.X, firstBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt));
 
-            var p1x = PointCalculator.PointX(firstBeadPoint.X, firstBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt);
-            var p1y = PointCalculator.PointY(firstBeadPoint.X, firstBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt);
-            var p2x = PointCalculator.PointX(secondBeadPoint.X, secondBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt);
-            var p2y = PointCalculator.PointY(secondBeadPoint.X, secondBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt);
+            var lineEnd = new Point(PointCalculator.PointX(secondBeadPoint.X, secondBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt),
+                                    PointCalculator.PointY(secondBeadPoint.X, secondBeadPoint.Y, originPoint.X, originPoint.Y, beadTilt));
 
-            var rightPoint = new Point(PointCalculator.PointX(firstBeadPoint.X,
-                                                          firstBeadPoint.Y,
-                                                          originPoint.X,
-                                                          originPoint.Y,
-                                                          _tiltUnit * i),
-                                   PointCalculator.PointY(firstBeadPoint.X,
-                                                          firstBeadPoint.Y,
-                                                          originPoint.X,
-                                                          originPoint.Y,
-                                                          _tiltUnit * i));
-
-            var leftPoint = new Point(PointCalculator.PointX(secondBeadPoint.X,
-                                                          secondBeadPoint.Y,
-                                                          originPoint.X,
-                                                          originPoint.Y,
-                                                          _tiltUnit * i),
-                                   PointCalculator.PointY(secondBeadPoint.X,
-                                                          secondBeadPoint.Y,
-                                                          originPoint.X,
-                                                          originPoint.Y,
-                                                          _tiltUnit * i));
-
-            double halfCycleDuration = 1000.0 * Convert.ToDouble(oneCycleSeconds / 2);
-            double frameMs = halfCycleDuration / Convert.ToDouble(oneCycleSeconds / 2 * 60);
-            double delayFrame = Convert.ToDouble(oneCycleSeconds / 2) * 60 / (double)(beadCount + 1);
-            double delayMs = frameMs * delayFrame * i + 20;
-
-            _firstBeads.Add(new Bead(p1x,
-                                p1y,
-                                rightPoint,
-                                leftPoint,
-                                beadTilt,
-                                originPoint,
-                                delayMs,
-                                oneCycleSeconds * 60));
-
-            if (beadTilt == 0)
-                isOtherOrthogonal = true;
-
-            _secondBeads.Add(new Bead(p2x,
-                                p2y,
-                                rightPoint,
-                                leftPoint,
-                                beadTilt,
-                                originPoint,
-                                delayMs,
-                                oneCycleSeconds * 60,
-                                isOtherOrthogonal));
+            // 각 선의 위상을 선의 기울기와 일치시키면 구슬들이 정확한 원 위에 배열된다.
+            // 같은 선 위의 두 구슬은 반대 위상(180도 차이)으로 움직인다.
+            // 시작 지연은 각 구슬의 궤도가 선의 끝점(cos = ±1)을 지나는 시각으로 잡아,
+            // 초기에는 모든 구슬이 선의 양 끝에 배치되고 그 지점에서 연속적으로 출발한다.
+            double startDelayFrame = oneCycleFrame * (180.0 - beadTilt) / 360.0;
+            _beads.Add(new Bead(lineStart, lineEnd, beadTilt, beadTilt, oneCycleFrame, startDelayFrame));
+            _beads.Add(new Bead(lineStart, lineEnd, beadTilt, beadTilt + 180, oneCycleFrame, startDelayFrame));
         }
-
-        Debug.WriteLine("FIRST " + Environment.NewLine + string.Join(Environment.NewLine, _firstBeads.Select(b => $"X:{b.XPoint} Y:{b.YPoint} A:{b.TiltAngle} D:{b.DelayMilliseconds}")));
-        Debug.WriteLine("SECOND " + Environment.NewLine + string.Join(Environment.NewLine, _secondBeads.Select(b => $"X:{b.XPoint} Y:{b.YPoint} A:{b.TiltAngle} D:{b.DelayMilliseconds}")));
     }
 }
